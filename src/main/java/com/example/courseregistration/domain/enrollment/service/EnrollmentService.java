@@ -276,16 +276,16 @@ public class EnrollmentService {
 
     // 대기열 1순위 승격
     private void promoteWaitlistEnrollment(Long courseClassId) {
-        Optional<Enrollment> firstWaitlist = enrollmentRepository.findFirstWaitlistEnrollmentForUpdate(
+        List<Enrollment> waitlist = enrollmentRepository.findWaitlistEnrollmentsForUpdate(
                 courseClassId,
                 EnrollmentStatus.WAITLISTED
         );
 
-        if (firstWaitlist.isEmpty()) {
+        if (waitlist.isEmpty()) {
             return;
         }
 
-        Enrollment enrollment = firstWaitlist.get();
+        Enrollment enrollment = waitlist.get(0);
         Enrollment promoted = Enrollment.builder()
                 .id(enrollment.getId())
                 .courseClass(enrollment.getCourseClass())

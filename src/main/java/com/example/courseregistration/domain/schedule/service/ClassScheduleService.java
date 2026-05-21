@@ -32,6 +32,7 @@ public class ClassScheduleService {
     @Transactional
     public ClassScheduleResponse create(Long courseClassId, ClassScheduleCreateRequest request) {
         validateTimeRange(request.startTime(), request.endTime());
+        validateNoOverlap(courseClassId, request.dayOfWeek(), request.startTime(), request.endTime(), null);
         CourseClass courseClass = getCourseClass(courseClassId);
 
         ClassSchedule schedule = ClassSchedule.builder()
@@ -58,6 +59,7 @@ public class ClassScheduleService {
     public ClassScheduleResponse update(Long scheduleId, ClassScheduleUpdateRequest request) {
         validateTimeRange(request.startTime(), request.endTime());
         ClassSchedule schedule = getSchedule(scheduleId);
+        validateNoOverlap(schedule.getCourseClass().getId(), request.dayOfWeek(), request.startTime(), request.endTime(), scheduleId);
 
         schedule.update(
                 request.dayOfWeek(),
@@ -92,6 +94,21 @@ public class ClassScheduleService {
     private void validateTimeRange(java.time.LocalTime startTime, java.time.LocalTime endTime) {
         if (endTime.isBefore(startTime)) {
             throw new BaseException(ScheduleErrorCode.INVALID_TIME_RANGE);
+        }
+    }
+
+    // 시간 중복 검증
+    private void validateNoOverlap(Long courseClassId, java.time.DayOfWeek dayOfWeek,
+                                    java.time.LocalTime startTime, java.time.LocalTime endTime, Long excludeScheduleId) {
+        List<ClassSchedule> overlappingSchedules = scheduleRepository.findOverlappingSchedules(
+                courseClassId, dayOfWeek, startTime, endTime);
+
+        // 수정 시에는 자신의 ID는 제외
+        boolean hasConflict = overlappingSchedules.stream()
+                .anyMatch(schedule -> excludeScheduleId == null || !schedule.getId().equals(excludeScheduleId));
+
+        if (hasConflict) {
+            throw new BaseException(ScheduleErrorCode.OVERLAPPING_SCHEDULE);
         }
     }
 }

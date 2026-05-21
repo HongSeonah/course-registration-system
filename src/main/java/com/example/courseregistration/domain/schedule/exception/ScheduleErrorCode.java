@@ -7,7 +7,8 @@ import org.springframework.http.HttpStatus;
 @Getter
 public enum ScheduleErrorCode implements ErrorCode {
     SCHEDULE_NOT_FOUND(HttpStatus.NOT_FOUND, "SCHEDULE_NOT_FOUND", "시간표를 찾을 수 없습니다."),
-    INVALID_TIME_RANGE(HttpStatus.BAD_REQUEST, "INVALID_TIME_RANGE", "종료 시간은 시작 시간보다 빨 수 없습니다.");
+    INVALID_TIME_RANGE(HttpStatus.BAD_REQUEST, "INVALID_TIME_RANGE", "종료 시간은 시작 시간보다 빨 수 없습니다."),
+    OVERLAPPING_SCHEDULE(HttpStatus.CONFLICT, "OVERLAPPING_SCHEDULE", "이미 등록된 시간과 겹치는 시간입니다.");
 
     private final HttpStatus status;
     private final String code;

@@ -20,6 +20,7 @@ import com.example.courseregistration.global.exception.BaseException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.EnumSet;
 import java.util.List;
@@ -221,12 +222,19 @@ public class EnrollmentService {
                 .orElseThrow(() -> new BaseException(EnrollmentErrorCode.ENROLLMENT_NOT_FOUND));
     }
 
-    // 시간표 중복 확인
+    // 수강 기간과 시간표 중복 확인
     private void checkScheduleConflict(Long courseClassId, List<Enrollment> conflictingEnrollments) {
+        CourseClass newCourseClass = getCourseClass(courseClassId);
         List<ClassSchedule> newCourseSchedules = scheduleRepository.findByCourseClassId(courseClassId);
 
         for (Enrollment conflicting : conflictingEnrollments) {
-            List<ClassSchedule> existingSchedules = scheduleRepository.findByCourseClassId(conflicting.getCourseClass().getId());
+            CourseClass existingCourseClass = conflicting.getCourseClass();
+            if (!hasPeriodOverlap(newCourseClass.getStartDate(), newCourseClass.getEndDate(),
+                    existingCourseClass.getStartDate(), existingCourseClass.getEndDate())) {
+                continue;
+            }
+
+            List<ClassSchedule> existingSchedules = scheduleRepository.findByCourseClassId(existingCourseClass.getId());
 
             for (ClassSchedule newSchedule : newCourseSchedules) {
                 for (ClassSchedule existingSchedule : existingSchedules) {
@@ -236,6 +244,12 @@ public class EnrollmentService {
                 }
             }
         }
+    }
+
+    // 수강 기간이 겹치는지 확인
+    private boolean hasPeriodOverlap(LocalDate startDate1, LocalDate endDate1,
+                                     LocalDate startDate2, LocalDate endDate2) {
+        return !startDate1.isAfter(endDate2) && !startDate2.isAfter(endDate1);
     }
 
     // 시간 중복 검사

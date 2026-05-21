@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatus;
 public enum GlobalErrorCode implements ErrorCode {
     BAD_REQUEST(HttpStatus.BAD_REQUEST, "BAD_REQUEST", "요청 값이 올바르지 않습니다."),
     VALIDATION_FAILED(HttpStatus.BAD_REQUEST, "VALIDATION_FAILED", "요청 값 검증에 실패했습니다."),
+    CONCURRENT_REQUEST_IN_PROGRESS(HttpStatus.CONFLICT, "CONCURRENT_REQUEST_IN_PROGRESS", "동시 요청이 처리 중입니다. 잠시 후 다시 시도해주세요."),
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_SERVER_ERROR", "서버에 문제가 발생했습니다.");
 
     private final HttpStatus status;

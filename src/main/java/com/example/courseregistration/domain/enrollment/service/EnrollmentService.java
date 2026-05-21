@@ -20,6 +20,7 @@ import com.example.courseregistration.global.exception.BaseException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.EnumSet;
 import java.util.List;
@@ -53,7 +54,7 @@ public class EnrollmentService {
     // 수강 신청
     @Transactional
     public EnrollmentResponse create(Long courseClassId, EnrollmentCreateRequest request) {
-        CourseClass courseClass = getCourseClass(courseClassId);
+        CourseClass courseClass = getCourseClassForUpdate(courseClassId);
         User classmate = getClassmate(request.classmateId());
 
         // 강의 OPEN인지 확인
@@ -68,6 +69,10 @@ public class EnrollmentService {
                 List.of(EnrollmentStatus.PENDING, EnrollmentStatus.CONFIRMED, EnrollmentStatus.WAITLISTED)
         );
         if (existingEnrollment.isPresent()) {
+            EnrollmentStatus existingStatus = existingEnrollment.get().getStatus();
+            if (existingStatus == EnrollmentStatus.PENDING || existingStatus == EnrollmentStatus.WAITLISTED) {
+                throw new BaseException(EnrollmentErrorCode.ALREADY_APPLIED);
+            }
             throw new BaseException(EnrollmentErrorCode.ALREADY_ENROLLED);
         }
 
@@ -100,8 +105,7 @@ public class EnrollmentService {
                 .waitlistOrder(waitlistOrder)
                 .build();
 
-        Enrollment saved = enrollmentRepository.save(enrollment);
-        return EnrollmentResponse.from(saved);
+        return EnrollmentResponse.from(enrollmentRepository.save(enrollment));
     }
 
     // 결제 확정
@@ -109,12 +113,10 @@ public class EnrollmentService {
     public EnrollmentResponse confirm(Long enrollmentId, EnrollmentActionRequest request) {
         Enrollment enrollment = getEnrollment(enrollmentId);
 
-        // classmateId 검증
         if (!enrollment.getClassmate().getId().equals(request.classmateId())) {
             throw new BaseException(EnrollmentErrorCode.INVALID_CLASSMATE_ID);
         }
 
-        // PENDING 상태 확인
         if (enrollment.getStatus() != EnrollmentStatus.PENDING) {
             throw new BaseException(EnrollmentErrorCode.INVALID_ENROLLMENT_STATUS);
         }
@@ -141,7 +143,6 @@ public class EnrollmentService {
     public void cancel(Long enrollmentId, EnrollmentActionRequest request) {
         Enrollment enrollment = getEnrollment(enrollmentId);
 
-        // classmateId 검증
         if (!enrollment.getClassmate().getId().equals(request.classmateId())) {
             throw new BaseException(EnrollmentErrorCode.INVALID_CLASSMATE_ID);
         }
@@ -154,6 +155,7 @@ public class EnrollmentService {
 
         EnrollmentStatus previousStatus = enrollment.getStatus();
         Long courseClassId = enrollment.getCourseClass().getId();
+        getCourseClassForUpdate(courseClassId);
 
         // CANCELLED로 변경
         Enrollment cancelled = Enrollment.builder()
@@ -174,12 +176,15 @@ public class EnrollmentService {
         // 취소 후 대기열 처리
         if (previousStatus == EnrollmentStatus.PENDING || previousStatus == EnrollmentStatus.CONFIRMED) {
             promoteWaitlistEnrollment(courseClassId);
+            return;
         }
+
+        reorderWaitlist(courseClassId);
     }
 
     // 내 수강 신청 목록 조회
     public List<EnrollmentResponse> findMyEnrollments(Long classmateId) {
-        getClassmate(classmateId); // 사용자 존재 확인
+        getClassmate(classmateId);
         return enrollmentRepository.findByClassmateId(classmateId).stream()
                 .map(EnrollmentResponse::from)
                 .toList();
@@ -187,7 +192,7 @@ public class EnrollmentService {
 
     // 강의별 수강 신청 목록 조회
     public List<EnrollmentResponse> findByCourseClass(Long courseClassId) {
-        getCourseClass(courseClassId); // 강의 존재 확인
+        getCourseClass(courseClassId);
         return enrollmentRepository.findByCourseClassId(courseClassId).stream()
                 .map(EnrollmentResponse::from)
                 .toList();
@@ -196,6 +201,12 @@ public class EnrollmentService {
     // 강의 조회
     private CourseClass getCourseClass(Long courseClassId) {
         return courseClassRepository.findById(courseClassId)
+                .orElseThrow(() -> new BaseException(CourseClassErrorCode.COURSE_CLASS_NOT_FOUND));
+    }
+
+    // 강의 락 조회
+    private CourseClass getCourseClassForUpdate(Long courseClassId) {
+        return courseClassRepository.findByIdForUpdate(courseClassId)
                 .orElseThrow(() -> new BaseException(CourseClassErrorCode.COURSE_CLASS_NOT_FOUND));
     }
 
@@ -211,12 +222,19 @@ public class EnrollmentService {
                 .orElseThrow(() -> new BaseException(EnrollmentErrorCode.ENROLLMENT_NOT_FOUND));
     }
 
-    // 시간표 충돌 확인
+    // 수강 기간과 시간표 중복 확인 (날짜 겹치는 경우 요일/시간까지 중복 검사)
     private void checkScheduleConflict(Long courseClassId, List<Enrollment> conflictingEnrollments) {
+        CourseClass newCourseClass = getCourseClass(courseClassId);
         List<ClassSchedule> newCourseSchedules = scheduleRepository.findByCourseClassId(courseClassId);
 
         for (Enrollment conflicting : conflictingEnrollments) {
-            List<ClassSchedule> existingSchedules = scheduleRepository.findByCourseClassId(conflicting.getCourseClass().getId());
+            CourseClass existingCourseClass = conflicting.getCourseClass();
+            if (!hasPeriodOverlap(newCourseClass.getStartDate(), newCourseClass.getEndDate(),
+                    existingCourseClass.getStartDate(), existingCourseClass.getEndDate())) {
+                continue;
+            }
+
+            List<ClassSchedule> existingSchedules = scheduleRepository.findByCourseClassId(existingCourseClass.getId());
 
             for (ClassSchedule newSchedule : newCourseSchedules) {
                 for (ClassSchedule existingSchedule : existingSchedules) {
@@ -226,6 +244,12 @@ public class EnrollmentService {
                 }
             }
         }
+    }
+
+    // 수강 기간이 겹치는지 확인 (startDate, endDate만 확인)
+    private boolean hasPeriodOverlap(LocalDate startDate1, LocalDate endDate1,
+                                     LocalDate startDate2, LocalDate endDate2) {
+        return !startDate1.isAfter(endDate2) && !startDate2.isAfter(endDate1);
     }
 
     // 시간 중복 검사
@@ -240,7 +264,7 @@ public class EnrollmentService {
 
     // 대기열 다음 순번 계산
     private Integer getNextWaitlistOrder(Long courseClassId) {
-        List<Enrollment> waitlist = enrollmentRepository.findWaitlistEnrollments(courseClassId, EnrollmentStatus.WAITLISTED);
+        List<Enrollment> waitlist = enrollmentRepository.findWaitlistEnrollmentsForUpdate(courseClassId, EnrollmentStatus.WAITLISTED);
         if (waitlist.isEmpty()) {
             return 1;
         }
@@ -252,37 +276,36 @@ public class EnrollmentService {
 
     // 대기열 1순위 승격
     private void promoteWaitlistEnrollment(Long courseClassId) {
-        Optional<Enrollment> firstWaitlist = enrollmentRepository.findFirstWaitlistEnrollment(
+        List<Enrollment> waitlist = enrollmentRepository.findWaitlistEnrollmentsForUpdate(
                 courseClassId,
                 EnrollmentStatus.WAITLISTED
         );
 
-        if (firstWaitlist.isPresent()) {
-            Enrollment enrollment = firstWaitlist.get();
-            // WAITLISTED -> PENDING
-            Enrollment promoted = Enrollment.builder()
-                    .id(enrollment.getId())
-                    .courseClass(enrollment.getCourseClass())
-                    .classmate(enrollment.getClassmate())
-                    .status(EnrollmentStatus.PENDING)
-                    .waitlistOrder(null)
-                    .appliedAt(enrollment.getAppliedAt())
-                    .paidAt(enrollment.getPaidAt())
-                    .cancelledAt(enrollment.getCancelledAt())
-                    .createdAt(enrollment.getCreatedAt())
-                    .updatedAt(enrollment.getUpdatedAt())
-                    .build();
-
-            enrollmentRepository.save(promoted);
-
-            // 나머지 대기열 순번 재정렬
-            reorderWaitlist(courseClassId);
+        if (waitlist.isEmpty()) {
+            return;
         }
+
+        Enrollment enrollment = waitlist.get(0);
+        Enrollment promoted = Enrollment.builder()
+                .id(enrollment.getId())
+                .courseClass(enrollment.getCourseClass())
+                .classmate(enrollment.getClassmate())
+                .status(EnrollmentStatus.PENDING)
+                .waitlistOrder(null)
+                .appliedAt(enrollment.getAppliedAt())
+                .paidAt(enrollment.getPaidAt())
+                .cancelledAt(enrollment.getCancelledAt())
+                .createdAt(enrollment.getCreatedAt())
+                .updatedAt(enrollment.getUpdatedAt())
+                .build();
+
+        enrollmentRepository.save(promoted);
+        reorderWaitlist(courseClassId);
     }
 
     // 대기열 순번 재정렬
     private void reorderWaitlist(Long courseClassId) {
-        List<Enrollment> waitlist = enrollmentRepository.findWaitlistEnrollments(courseClassId, EnrollmentStatus.WAITLISTED);
+        List<Enrollment> waitlist = enrollmentRepository.findWaitlistEnrollmentsForUpdate(courseClassId, EnrollmentStatus.WAITLISTED);
 
         int order = 1;
         for (Enrollment enrollment : waitlist) {

@@ -101,7 +101,6 @@ public class CourseClassService {
     }
 
     // 강의 상태 변경
-    // TODO: 수강 시작일 지나면 자동으로 CLOSED 되도록 (OPEN은 무조건 수동)
     @Transactional
     public CourseClassResponse changeStatus(Long courseClassId, CourseClassStatus status) {
         CourseClass courseClass = getCourseClass(courseClassId);

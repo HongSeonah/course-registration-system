@@ -71,4 +71,5 @@ public class Enrollment {
     @UpdateTimestamp
     @Column(nullable = false)
     private LocalDateTime updatedAt;
+
 }

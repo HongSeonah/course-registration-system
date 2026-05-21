@@ -222,7 +222,7 @@ public class EnrollmentService {
                 .orElseThrow(() -> new BaseException(EnrollmentErrorCode.ENROLLMENT_NOT_FOUND));
     }
 
-    // 수강 기간과 시간표 중복 확인
+    // 수강 기간과 시간표 중복 확인 (날짜 겹치는 경우 요일/시간까지 중복 검사)
     private void checkScheduleConflict(Long courseClassId, List<Enrollment> conflictingEnrollments) {
         CourseClass newCourseClass = getCourseClass(courseClassId);
         List<ClassSchedule> newCourseSchedules = scheduleRepository.findByCourseClassId(courseClassId);
@@ -246,7 +246,7 @@ public class EnrollmentService {
         }
     }
 
-    // 수강 기간이 겹치는지 확인
+    // 수강 기간이 겹치는지 확인 (startDate, endDate만 확인)
     private boolean hasPeriodOverlap(LocalDate startDate1, LocalDate endDate1,
                                      LocalDate startDate2, LocalDate endDate2) {
         return !startDate1.isAfter(endDate2) && !startDate2.isAfter(endDate1);

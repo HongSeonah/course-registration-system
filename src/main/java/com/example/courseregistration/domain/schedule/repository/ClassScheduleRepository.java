@@ -15,7 +15,6 @@ public interface ClassScheduleRepository extends JpaRepository<ClassSchedule, Lo
     List<ClassSchedule> findByCourseClassId(Long courseClassId);
 
     // 중복 시간 확인
-    // TODO: startDate와 endDate 안에서 겹치는지 검증해야함
     @Query("SELECT cs FROM ClassSchedule cs " +
            "WHERE cs.courseClass.id = :courseClassId " +
            "AND cs.dayOfWeek = :dayOfWeek " +

@@ -70,4 +70,18 @@ public class CourseClass {
     @UpdateTimestamp
     @Column(nullable = false)
     private LocalDateTime updatedAt;
+
+    public void update(String title, String description, BigDecimal price, int capacity,
+                       LocalDate startDate, LocalDate endDate) {
+        this.title = title;
+        this.description = description;
+        this.price = price;
+        this.capacity = capacity;
+        this.startDate = startDate;
+        this.endDate = endDate;
+    }
+
+    public void changeStatus(CourseClassStatus status) {
+        this.status = status;
+    }
 }

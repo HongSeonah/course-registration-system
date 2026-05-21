@@ -60,4 +60,11 @@ public class ClassSchedule {
     @UpdateTimestamp
     @Column(nullable = false)
     private LocalDateTime updatedAt;
+
+    public void update(DayOfWeek dayOfWeek, LocalTime startTime, LocalTime endTime, String room) {
+        this.dayOfWeek = dayOfWeek;
+        this.startTime = startTime;
+        this.endTime = endTime;
+        this.room = room;
+    }
 }

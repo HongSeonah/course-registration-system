@@ -7,7 +7,8 @@ import org.springframework.http.HttpStatus;
 @Getter
 public enum EnrollmentErrorCode implements ErrorCode {
     COURSE_CLASS_NOT_OPEN(HttpStatus.CONFLICT, "COURSE_CLASS_NOT_OPEN", "강의가 OPEN 상태가 아닙니다."),
-    ALREADY_ENROLLED(HttpStatus.CONFLICT, "ALREADY_ENROLLED", "이미 신청/대기 중인 강의입니다."),
+    ALREADY_ENROLLED(HttpStatus.CONFLICT, "ALREADY_ENROLLED", "이미 수강 중인 강의입니다."),
+    ALREADY_APPLIED(HttpStatus.CONFLICT, "ALREADY_APPLIED", "이미 신청 중인 강의입니다."),
     SCHEDULE_CONFLICT(HttpStatus.CONFLICT, "SCHEDULE_CONFLICT", "시간표 충돌이 발생했습니다."),
     CAPACITY_EXCEEDED(HttpStatus.CONFLICT, "CAPACITY_EXCEEDED", "정원이 초과되었습니다."),
     ENROLLMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "ENROLLMENT_NOT_FOUND", "수강 신청 정보를 찾을 수 없습니다."),

@@ -1,8 +1,10 @@
 package com.example.courseregistration.domain.enrollment.repository;
 
-import com.example.courseregistration.domain.enrollment.entity.EnrollmentStatus;
 import com.example.courseregistration.domain.enrollment.entity.Enrollment;
+import com.example.courseregistration.domain.enrollment.entity.EnrollmentStatus;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -36,7 +38,7 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
            "ORDER BY e.appliedAt DESC")
     List<Enrollment> findByClassmateId(@Param("classmateId") Long classmateId);
 
-    // 시간표 충돌 확인: 사용자가 이미 신청한 강의들의 스케줄 조회
+    // 시간표 충돌 확인 (이미 신청한 강의 스케줄 조회)
     @Query("SELECT e FROM Enrollment e " +
            "WHERE e.classmate.id = :classmateId " +
            "AND e.status IN :statuses " +
@@ -46,21 +48,23 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
             @Param("statuses") Collection<EnrollmentStatus> statuses,
             @Param("excludeCourseClassId") Long excludeCourseClassId);
 
-    // 특정 강의의 대기열 1순위 조회
+    // 대기열 1순위 조회
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT e FROM Enrollment e " +
            "WHERE e.courseClass.id = :courseClassId " +
            "AND e.status = :status " +
            "ORDER BY e.waitlistOrder ASC")
-    Optional<Enrollment> findFirstWaitlistEnrollment(
+    Optional<Enrollment> findFirstWaitlistEnrollmentForUpdate(
             @Param("courseClassId") Long courseClassId,
             @Param("status") EnrollmentStatus status);
 
-    // 특정 강의의 대기열 조회
+    // 대기열 순번 재정렬
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT e FROM Enrollment e " +
            "WHERE e.courseClass.id = :courseClassId " +
            "AND e.status = :status " +
            "ORDER BY e.waitlistOrder ASC")
-    List<Enrollment> findWaitlistEnrollments(
+    List<Enrollment> findWaitlistEnrollmentsForUpdate(
             @Param("courseClassId") Long courseClassId,
             @Param("status") EnrollmentStatus status);
 }

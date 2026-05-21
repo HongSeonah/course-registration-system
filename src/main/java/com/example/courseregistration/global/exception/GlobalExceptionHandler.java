@@ -1,6 +1,9 @@
 package com.example.courseregistration.global.exception;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.dao.CannotAcquireLockException;
+import org.springframework.dao.DeadlockLoserDataAccessException;
+import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -26,6 +29,18 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(GlobalErrorCode.VALIDATION_FAILED.getStatus())
                 .body(ErrorResponseDTO.of(GlobalErrorCode.VALIDATION_FAILED, message));
+    }
+
+
+    @ExceptionHandler({
+            CannotAcquireLockException.class,
+            PessimisticLockingFailureException.class,
+            DeadlockLoserDataAccessException.class
+    })
+    public ResponseEntity<ErrorResponseDTO> handleConcurrencyException() {
+        return ResponseEntity
+                .status(GlobalErrorCode.CONCURRENT_REQUEST_IN_PROGRESS.getStatus())
+                .body(ErrorResponseDTO.from(GlobalErrorCode.CONCURRENT_REQUEST_IN_PROGRESS));
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)

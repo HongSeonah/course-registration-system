@@ -3,6 +3,8 @@ package com.example.courseregistration.domain.courseclass.entity;
 import com.example.courseregistration.domain.user.entity.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -18,6 +20,7 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -43,6 +46,9 @@ public class CourseClass {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String description;
 
+    @Column(nullable = false, precision = 12, scale = 2)
+    private BigDecimal price;
+
     @Column(nullable = false)
     private int capacity;
 
@@ -51,6 +57,11 @@ public class CourseClass {
 
     @Column(nullable = false)
     private LocalDate endDate;
+
+    @Builder.Default
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private CourseClassStatus status = CourseClassStatus.DRAFT;
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)

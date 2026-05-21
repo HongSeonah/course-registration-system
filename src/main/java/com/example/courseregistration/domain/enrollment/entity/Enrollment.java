@@ -60,6 +60,8 @@ public class Enrollment {
     @Column(nullable = false, updatable = false)
     private LocalDateTime appliedAt;
 
+    private LocalDateTime paidAt;
+
     private LocalDateTime cancelledAt;
 
     @CreationTimestamp

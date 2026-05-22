@@ -479,9 +479,8 @@ GET /api/course-classes/4/enrollments?creatorId=1
 
 ## 데이터 모델 설명
 
-ERD 이미지는 별도 첨부하여 확인할 수 있도록 구성했습니다.
+<img width="895" height="636" alt="image" src="https://github.com/user-attachments/assets/08e16347-b293-45bc-a55c-ad9cd89bce70" />
 
-이 프로젝트의 핵심 데이터 흐름은 다음과 같습니다.
 - `users`는 강사와 수강생을 모두 포함하는 사용자 테이블입니다.
 - `course_classes`는 강의의 기본 정보와 강의를 개설한 강사 정보를 연결합니다.
 - `course_class_schedules`는 하나의 강의에 여러 개의 요일/시간표를 연결할 수 있도록 분리했습니다.

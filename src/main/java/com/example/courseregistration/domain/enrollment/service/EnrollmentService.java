@@ -193,8 +193,10 @@ public class EnrollmentService {
     }
 
     // 강의별 수강 신청 목록 조회
-    public List<EnrollmentResponse> findByCourseClass(Long courseClassId) {
-        getCourseClass(courseClassId);
+    public List<EnrollmentResponse> findByCourseClass(Long courseClassId, Long creatorId) {
+        CourseClass courseClass = getCourseClass(courseClassId);
+        validateCreatorAccess(courseClass, creatorId);
+
         return enrollmentRepository.findByCourseClassId(courseClassId).stream()
                 .map(EnrollmentResponse::from)
                 .toList();
@@ -204,6 +206,13 @@ public class EnrollmentService {
     private CourseClass getCourseClass(Long courseClassId) {
         return courseClassRepository.findById(courseClassId)
                 .orElseThrow(() -> new BaseException(CourseClassErrorCode.COURSE_CLASS_NOT_FOUND));
+    }
+
+    // 강의 소유자 확인
+    private void validateCreatorAccess(CourseClass courseClass, Long creatorId) {
+        if (!courseClass.getCreator().getId().equals(creatorId)) {
+            throw new BaseException(CourseClassErrorCode.COURSE_CLASS_ENROLLMENT_ACCESS_DENIED);
+        }
     }
 
     // 강의 락 조회

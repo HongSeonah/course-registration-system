@@ -12,6 +12,7 @@ public enum EnrollmentErrorCode implements ErrorCode {
     SCHEDULE_CONFLICT(HttpStatus.CONFLICT, "SCHEDULE_CONFLICT", "이미 신청한 강의와 시간이 겹칩니다."),
     CAPACITY_EXCEEDED(HttpStatus.CONFLICT, "CAPACITY_EXCEEDED", "정원이 초과되었습니다."),
     ENROLLMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "ENROLLMENT_NOT_FOUND", "수강 신청 정보를 찾을 수 없습니다."),
+    CANCELLATION_PERIOD_EXPIRED(HttpStatus.CONFLICT, "CANCELLATION_PERIOD_EXPIRED", "결제 후 7일이 지나 취소할 수 없습니다."),
     INVALID_ENROLLMENT_STATUS(HttpStatus.CONFLICT, "INVALID_ENROLLMENT_STATUS", "해당 상태에서 요청할 수 없습니다."),
     INVALID_CLASSMATE_ID(HttpStatus.BAD_REQUEST, "INVALID_CLASSMATE_ID", "classmateId와 요청한 사용자가 일치하지 않습니다.");
 

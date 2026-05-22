@@ -17,6 +17,8 @@ import com.example.courseregistration.domain.user.entity.User;
 import com.example.courseregistration.domain.user.exception.UserErrorCode;
 import com.example.courseregistration.domain.user.repository.UserRepository;
 import com.example.courseregistration.global.exception.BaseException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -157,6 +159,8 @@ public class EnrollmentService {
         Long courseClassId = enrollment.getCourseClass().getId();
         getCourseClassForUpdate(courseClassId);
 
+        validateCancellationPeriod(enrollment);
+
         // CANCELLED로 변경
         Enrollment cancelled = Enrollment.builder()
                 .id(enrollment.getId())
@@ -183,16 +187,17 @@ public class EnrollmentService {
     }
 
     // 내 수강 신청 목록 조회
-    public List<EnrollmentResponse> findMyEnrollments(Long classmateId) {
+    public Page<EnrollmentResponse> findMyEnrollments(Long classmateId, Pageable pageable) {
         getClassmate(classmateId);
-        return enrollmentRepository.findByClassmateId(classmateId).stream()
-                .map(EnrollmentResponse::from)
-                .toList();
+        return enrollmentRepository.findByClassmateId(classmateId, pageable)
+                .map(EnrollmentResponse::from);
     }
 
     // 강의별 수강 신청 목록 조회
-    public List<EnrollmentResponse> findByCourseClass(Long courseClassId) {
-        getCourseClass(courseClassId);
+    public List<EnrollmentResponse> findByCourseClass(Long courseClassId, Long creatorId) {
+        CourseClass courseClass = getCourseClass(courseClassId);
+        validateCreatorAccess(courseClass, creatorId);
+
         return enrollmentRepository.findByCourseClassId(courseClassId).stream()
                 .map(EnrollmentResponse::from)
                 .toList();
@@ -202,6 +207,13 @@ public class EnrollmentService {
     private CourseClass getCourseClass(Long courseClassId) {
         return courseClassRepository.findById(courseClassId)
                 .orElseThrow(() -> new BaseException(CourseClassErrorCode.COURSE_CLASS_NOT_FOUND));
+    }
+
+    // 강의 소유자 확인
+    private void validateCreatorAccess(CourseClass courseClass, Long creatorId) {
+        if (!courseClass.getCreator().getId().equals(creatorId)) {
+            throw new BaseException(CourseClassErrorCode.COURSE_CLASS_ENROLLMENT_ACCESS_DENIED);
+        }
     }
 
     // 강의 락 조회
@@ -220,6 +232,21 @@ public class EnrollmentService {
     private Enrollment getEnrollment(Long enrollmentId) {
         return enrollmentRepository.findById(enrollmentId)
                 .orElseThrow(() -> new BaseException(EnrollmentErrorCode.ENROLLMENT_NOT_FOUND));
+    }
+
+    // 취소 가능 기간 검증
+    private void validateCancellationPeriod(Enrollment enrollment) {
+        if (enrollment.getStatus() != EnrollmentStatus.CONFIRMED) {
+            return;
+        }
+
+        if (enrollment.getPaidAt() == null) {
+            throw new BaseException(EnrollmentErrorCode.INVALID_ENROLLMENT_STATUS);
+        }
+
+        if (LocalDateTime.now().isAfter(enrollment.getPaidAt().plusDays(7))) {
+            throw new BaseException(EnrollmentErrorCode.CANCELLATION_PERIOD_EXPIRED);
+        }
     }
 
     // 수강 기간과 시간표 중복 확인 (날짜 겹치는 경우 요일/시간까지 중복 검사)

@@ -479,7 +479,8 @@ GET /api/course-classes/4/enrollments?creatorId=1
 
 ## 데이터 모델 설명
 
-<img width="895" height="636" alt="image" src="https://github.com/user-attachments/assets/08e16347-b293-45bc-a55c-ad9cd89bce70" />
+<img width="600" alt="image" src="https://github.com/user-attachments/assets/08e16347-b293-45bc-a55c-ad9cd89bce70" />
+
 
 - `users`는 강사와 수강생을 모두 포함하는 사용자 테이블입니다.
 - `course_classes`는 강의의 기본 정보와 강의를 개설한 강사 정보를 연결합니다.
@@ -503,27 +504,22 @@ GET /api/course-classes/4/enrollments?creatorId=1
 ./gradlew test --tests com.example.courseregistration.domain.enrollment.service.EnrollmentServiceTest
 ```
 
-이번 프로젝트의 테스트는 단순히 API가 정상 응답하는지만 보는 방식이 아니라, 핵심 비즈니스 규칙이 실제로 유지되는지를 중심으로 구성했습니다.
+### 현재 테스트 구성
 
-### 테스트 확인 포인트
-- 수강 신청
-  - 정원 내 신청 시 `PENDING`으로 저장되는지 확인
-  - 정원 초과 시 `WAITLISTED`로 저장되는지 확인
-  - 중복 신청이 거부되는지 확인
-  - 시간표 충돌이 거부되는지 확인
+#### 1. `EnrollmentServiceTest`
+수강 신청과 수강 취소의 핵심 비즈니스 규칙을 검증합니다.
+- 정원 내 신청 시 `PENDING`으로 저장되는지 확인
+- 정원 초과 시 `WAITLISTED`로 저장되는지 확인
+- 중복 신청이 거부되는지 확인
+- 시간표 충돌이 거부되는지 확인
+- 결제 후 7일 이내에만 취소되는지 확인
+- 취소 시 대기열 1순위가 승격되는지 확인
+- 내 수강 신청 목록 조회가 페이지 단위로 동작하는지 확인
 
-- 수강 취소
-  - 결제 후 7일 이내에만 취소되는지 확인
-  - 취소 시 대기열 1순위가 승격되는지 확인
+#### 2. `CourseClassStatusSchedulerTest`
+강의 상태 자동 변경 로직을 검증합니다.
+- 강의 시작일이 지난 `OPEN` 강의가 자동으로 `CLOSED`로 변경되는지 확인
 
-- 스케줄러
-  - 강의 시작일이 지난 `OPEN` 강의가 자동으로 `CLOSED`로 변경되는지 확인
-
-테스트 결과는 터미널 출력으로도 확인할 수 있고, 실패한 테스트가 있을 때는 Gradle이 생성한 HTML 리포트로 자세한 내용을 볼 수 있습니다.
-
-```bash
-build/reports/tests/test/index.html
-```
-
-이 HTML 리포트에서는 어떤 테스트가 실패했는지, 실패한 예외는 무엇인지, 전체 테스트 중 어디에서 문제가 났는지를 한눈에 확인할 수 있습니다.
-과제 제출이나 코드 리뷰 상황에서는 이 리포트를 열어보면 테스트 흐름을 빠르게 추적할 수 있습니다.
+### 테스트 결과 확인
+테스트 실행 결과는 터미널에서 바로 확인할 수 있습니다.
+실패가 있으면 `build/reports/tests/test/index.html`에 HTML 리포트가 생성되고, 어떤 테스트가 왜 실패했는지 확인할 수 있습니다.

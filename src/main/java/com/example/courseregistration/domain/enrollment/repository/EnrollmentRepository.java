@@ -3,6 +3,7 @@ package com.example.courseregistration.domain.enrollment.repository;
 import com.example.courseregistration.domain.enrollment.entity.Enrollment;
 import com.example.courseregistration.domain.enrollment.entity.EnrollmentStatus;
 import jakarta.persistence.LockModeType;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
@@ -37,6 +38,11 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
            "WHERE e.classmate.id = :classmateId " +
            "ORDER BY e.appliedAt DESC")
     List<Enrollment> findByClassmateId(@Param("classmateId") Long classmateId);
+
+    // 특정 사용자의 신청 내역 페이지 조회
+    @Query("SELECT e FROM Enrollment e " +
+           "WHERE e.classmate.id = :classmateId")
+    org.springframework.data.domain.Page<Enrollment> findByClassmateId(@Param("classmateId") Long classmateId, Pageable pageable);
 
     // 시간표 충돌 확인 (이미 신청한 강의 스케줄 조회)
     @Query("SELECT e FROM Enrollment e " +

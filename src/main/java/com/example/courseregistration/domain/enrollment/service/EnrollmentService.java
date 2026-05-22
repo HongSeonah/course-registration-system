@@ -17,6 +17,8 @@ import com.example.courseregistration.domain.user.entity.User;
 import com.example.courseregistration.domain.user.exception.UserErrorCode;
 import com.example.courseregistration.domain.user.repository.UserRepository;
 import com.example.courseregistration.global.exception.BaseException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -185,11 +187,10 @@ public class EnrollmentService {
     }
 
     // 내 수강 신청 목록 조회
-    public List<EnrollmentResponse> findMyEnrollments(Long classmateId) {
+    public Page<EnrollmentResponse> findMyEnrollments(Long classmateId, Pageable pageable) {
         getClassmate(classmateId);
-        return enrollmentRepository.findByClassmateId(classmateId).stream()
-                .map(EnrollmentResponse::from)
-                .toList();
+        return enrollmentRepository.findByClassmateId(classmateId, pageable)
+                .map(EnrollmentResponse::from);
     }
 
     // 강의별 수강 신청 목록 조회
